@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>带多图上传功能的H5页面</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 基础样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --accent: #4895ef;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --admin: #ff6b6b;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--light);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+            padding-bottom: 120px; /* 为底部按钮留出空间 */
+        }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* 整体布局 - 主容器 */
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex; 
+            position: relative;
+        }
+        
+        /* 左侧导航栏样式 */
+        .sidebar {
+            width: 80px; 
+            position: fixed; 
+            top: 50%; 
+            left: 20px; 
+            transform: translateY(-50%); 
+            display: flex;
+            flex-direction: column; 
+            gap: 15px; 
+            z-index: 100; 
+            background: rgba(255, 255, 255, 0.1); 
+            backdrop-filter: blur(10px); 
+            border-radius: 20px; 
+            padding: 20px 10px; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); 
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+        }
+        
+        /* 导航按钮样式 */
+        .nav-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%; 
+            display: flex;
+            flex-direction: column; 
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.15); 
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease; 
+            text-align: center; 
+            border: none; 
+            position: relative; 
+            overflow: hidden; 
+        }
+        
+        /* 导航按钮悬停效果 */
+        .nav-btn:hover {
+            background: var(--accent); 
+            transform: translateY(-5px); 
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); 
+        }
+        
+        /* 导航按钮图标样式 */
+        .nav-btn i {
+            font-size: 1.5rem; 
+            margin-bottom: 5px; 
+        }
+        
+        /* 当前激活的导航按钮样式 */
+        .nav-btn.active {
+            background: var(--primary); 
+            transform: scale(1.1); 
+            box-shadow: 0 0 15px rgba(67, 97, 238, 0.7); 
+        }
+        
+        /* 主内容区域样式 */
+        .main-content {
+            flex: 1; 
+            margin-left: 100px; 
+        }
+        
+        /* 页眉样式 */
+        header {
+            text-align: center;
+            padding: 50px 20px 30px;
+            margin-bottom: 30px;
+            animation: fadeIn 1s ease-out;
+        }
+        
+        /* 主标题样式 */
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            background: linear-gradient(to right, #ff8a00, #da1b60);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+        
+        /* 副标题样式 */
+        .subtitle {
+            font-size: 1.4rem;
+            max-width: 800px;
+            margin: 0 auto;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        
+        /* 板块容器样式 */
+        .sections-container {
+            display: flex; 
+            flex-direction: column; 
+            gap: 40px; 
+            margin-bottom: 50px;
+        }
+        
+        /* 单个板块样式 */
+        .section {
+            background: rgba(255, 255, 255, 0.1); 
+            backdrop-filter: blur(10px); 
+            border-radius: 20px; 
+            overflow: hidden; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); 
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+            padding: 30px; 
+            transition: transform 0.4s ease, box-shadow 0.4s ease; 
+            min-height: 80vh; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            position: relative; /* 用于定位编辑按钮 */
+        }
+        
+        /* 编辑模式下的板块样式 */
+        .section.editable {
+            border: 2px dashed var(--admin);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        /* 板块悬停效果 */
+        .section:hover {
+            transform: translateY(-10px); 
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4); 
+        }
+        
+        /* 板块标题区域样式 */
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        /* 板块图标样式 */
+        .icon {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.15); 
+            border-radius: 50%; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px; 
+            font-size: 2rem; 
+        }
+        
+        /* 板块标题文字样式 */
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+        }
+        
+        /* 编辑模式下的标题样式 */
+        .editable .section-title {
+            border-bottom: 2px dashed var(--admin);
+            padding-bottom: 5px;
+        }
+        
+        /* 板块内容区域样式 */
+        .section-content {
+            display: flex; 
+            gap: 30px; 
+        }
+        
+        /* 板块文字内容样式 */
+        .section-text {
+            flex: 1; 
+            line-height: 1.8; 
+            font-size: 1.1rem; 
+            text-align: justify; 
+        }
+        
+        /* 编辑模式下的文本样式 */
+        .editable .section-text {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        /* 图片容器样式 */
+        .images-container {
+            flex: 1; 
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        /* 单张图片容器 */
+        .image-item {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            aspect-ratio: 4/3;
+        }
+        
+        .image-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 图片样式 */
+        .section-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        
+        /* 图片操作按钮容器 */
+        .image-actions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        /* 编辑模式下显示图片操作按钮 */
+        .editable .image-actions {
+            opacity: 1;
+        }
+        
+        /* 图片操作按钮 */
+        .img-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .img-btn:hover {
+            transform: scale(1.1);
+            background: var(--admin);
+        }
+        
+        /* 添加图片按钮 */
+        .add-image-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            aspect-ratio: 4/3;
+            flex-direction: column;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .add-image-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .add-image-btn i {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        /* 页脚样式 */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            width: 100%;
+            font-size: 1.1rem;
+            opacity: 0.8;
+            background: rgba(0, 0, 0, 0.2); 
+            border-radius: 15px; 
+            margin-top: 30px; 
+        }
+        
+        /* 高亮文字样式 */
+        .highlight {
+            color: #ffcc00;
+            font-weight: 600;
+        }
+        
+        /* 管理员按钮样式 */
+        .admin-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--admin);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.5);
+            border: none;
+            z-index: 200;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.7);
+        }
+        
+        /* 密码模态框样式 */
+        .password-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .password-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal-content {
+            background: rgba(30, 30, 40, 0.95);
+            width: 90%;
+            max-width: 500px;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+        
+        .password-modal.active .modal-content {
+            transform: translateY(0);
+        }
+        
+        .modal-header {
+            margin-bottom: 30px;
+        }
+        
+        .modal-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--admin);
+        }
+        
+        .modal-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+        
+        .password-input {
+            width: 100%;
+            padding: 15px 20px;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1.1rem;
+            margin: 20px 0;
+            text-align: center;
+            transition: border-color 0.3s ease;
+        }
+        
+        .password-input:focus {
+            outline: none;
+            border-color: var(--admin);
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .modal-btn {
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+        
+        .modal-btn.cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .modal-btn.submit {
+            background: var(--admin);
+            color: white;
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 图片上传按钮 */
+        .file-input {
+            display: none;
+        }
+        
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        /* 响应式设计 - 移动设备适配 */
+        @media (max-width: 992px) {
+            .container {
+                flex-direction: column; 
+            }
+            
+            .sidebar {
+                position: relative; 
+                top: auto;
+                left: auto;
+                transform: none;
+                width: 100%; 
+                flex-direction: row; 
+                justify-content: center; 
+                margin-bottom: 30px;
+                padding: 15px;
+                gap: 10px;
+            }
+            
+            .nav-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 0.8rem;
+            }
+            
+            .nav-btn i {
+                font-size: 1.2rem;
+            }
+            
+            .main-content {
+                margin-left: 0; 
+            }
+            
+            .section-content {
+                flex-direction: column; 
+            }
+            
+            .images-container {
+                order: -1; 
+                margin-bottom: 20px;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+        }
+        
+        /* 小屏幕设备适配 */
+        @media (max-width: 768px) {
+            .images-container {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .sidebar {
+                flex-wrap: wrap; 
+            }
+            
+            .nav-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 0.7rem;
+            }
+            
+            .nav-btn i {
+                font-size: 1rem;
+            }
+            
+            .section-header {
+                flex-direction: column; 
+                text-align: center;
+            }
+            
+            .icon {
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+            
+            .admin-btn {
+                bottom: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                font-size: 1rem;
+            }
+            
+            .images-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 密码输入模态框 -->
+    <div class="password-modal" id="passwordModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">管理员验证</h2>
+                <p class="modal-subtitle">请输入管理员密码以进入编辑模式</p>
+            </div>
+            
+            <input type="password" id="passwordInput" class="password-input" placeholder="输入管理员密码">
+            <p id="errorMsg" style="color: #ff6b6b; height: 20px; margin-bottom: 10px;"></p>
+            
+            <div class="modal-actions">
+                <button class="modal-btn cancel" id="cancelBtn">取消</button>
+                <button class="modal-btn submit" id="submitBtn">确认</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 文件输入 -->
+    <input type="file" id="imageUpload" class="file-input" accept="image/*" multiple>
+    
+    <div class="container">
+        <!-- 左侧导航栏 -->
+        <div class="sidebar">
+            <!-- 导航按钮1 -->
+            <button class="nav-btn active" data-target="section1">
+                <i class="fas fa-mountain"></i>
+                <span>风光</span>
+            </button>
+            
+            <!-- 导航按钮2 -->
+            <button class="nav-btn" data-target="section2">
+                <i class="fas fa-city"></i>
+                <span>城市</span>
+            </button>
+            
+            <!-- 导航按钮3 -->
+            <button class="nav-btn" data-target="section3">
+                <i class="fas fa-utensils"></i>
+                <span>美食</span>
+            </button>
+            
+            <!-- 导航按钮4 -->
+            <button class="nav-btn" data-target="section4">
+                <i class="fas fa-palette"></i>
+                <span>艺术</span>
+            </button>
+            
+            <!-- 导航按钮5 -->
+            <button class="nav-btn" data-target="section5">
+                <i class="fas fa-laptop-code"></i>
+                <span>科技</span>
+            </button>
+        </div>
+        
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <header>
+                <h1>带多图上传功能的H5页面</h1>
+                <p class="subtitle">管理员模式下可直接上传本地图片，支持多图排版展示</p>
+            </header>
+            
+            <!-- 板块容器 -->
+            <div class="sections-container">
+                <!-- 板块1：自然风光 -->
+                <section id="section1" class="section">
+                    <div class="section-header">
+                        <div class="icon">
+                            <i class="fas fa-mountain"></i>
+                        </div>
+                        <h2 class="section-title" contenteditable="false">自然风光</h2>
+                    </div>
+                    
+                    <div class="section-content">
+                        <div class="section-text" contenteditable="false">
+                            <p>探索世界上最令人惊叹的自然奇观。从高耸入云的山脉到深邃的蓝色海洋，大自然以其独特的方式展现着壮丽之美。每一处风景都诉说着地球亿万年的故事，等待着勇敢的探险者去发现。</p>
+                        </div>
+                        
+                        <div class="images-container" id="section1-images">
+                            <!-- 图片将通过JavaScript动态添加 -->
+                            <div class="image-item">
+                                <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
+                                     alt="山脉" class="section-image">
+                                <div class="image-actions">
+                                    <div class="img-btn delete-img">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="image-item">
+                                <img src="https://images.unsplash.com/photo-1437622368342-7a3d73a34c8f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
+                                     alt="湖泊" class="section-image">
+                                <div class="image-actions">
+                                    <div class="img-btn delete-img">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- 板块2：城市景观 -->
+                <section id="section2" class="section">
+                    <div class="section-header">
+                        <div class="icon">
+                            <i class="fas fa-city"></i>
+                        </div>
+                        <h2 class="section-title" contenteditable="false">城市景观</h2>
+                    </div>
+                    
+                    <div class="section-content">
+                        <div class="section-text" contenteditable="false">
+                            <p>现代都市是人类文明的杰作。高耸的摩天大楼、繁忙的街道、璀璨的夜景，构成了城市独特的魅力。每个城市都有其独特的文化和历史，通过建筑、街道和人们的生活方式展现出来。</p>
+                        </div>
+                        
+                        <div class="images-container" id="section2-images">
+                            <div class="image-item">
+                                <img src="https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
+                                     alt="城市景观" class="section-image">
+                                <div class="image-actions">
+                                    <div class="img-btn delete-img">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- 板块3：美食文化 -->
+                <section id="section3" class="section">
+                    <div class="section-header">
+                        <div class="icon">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        <h2 class="section-title" contenteditable="false">美食文化</h2>
+                    </div>
+                    
+                    <div class="section-content">
+                        <div class="section-text" contenteditable="false">
+                            <p>美食是文化的桥梁，连接着世界各地的人们。从精致的法式大餐到街头小吃，从传统的东方料理到创新的融合菜系，每一道美食都讲述着一个地方的故事，传递着独特的风土人情。</p>
+                        </div>
+                        
+                        <div class="images-container" id="section3-images">
+                            <div class="image-item">
+                                <img src="https://images.unsplash.com/photo-1467003909585-2f8a72700288?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
+                                     alt="美食" class="section-image">
+                                <div class="image-actions">
+                                    <div class="img-btn delete-img">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="image-item">
+                                <img src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
+                                     alt="美食" class="section-image">
+                                <div class="image-actions">
+                                    <div class="img-btn delete-img">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="image-item">
+                                <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
+                                     alt="美食" class="section-image">
+                                <div class="image-actions">
+                                    <div class="img-btn delete-img">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- 板块4：艺术创作 -->
+                <section id="section4" class="section">
+                    <div class="section-header">
+                        <div class="icon">
+                            <i class="fas fa-palette"></i>
+                        </div>
+                        <h2 class="section-title" contenteditable="false">艺术创作</h2>
+                    </div>
+                    
+                    <div class="section-content">
+                        <div class="section-text" contenteditable="false">
+                            <p>艺术是人类情感和思想的表达。从古典绘画到现代装置艺术，从传统音乐到电子音乐，艺术形式不断演变，但始终承载着人类对美的追求和对世界的理解。</p>
+                        </div>
+                        
+                        <div class="images-container" id="section4-images">
+                            <div class="image-item">
+                                <img src="https://images.unsplash.com/photo-1543857778-c4a1a569e7bd?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
+                                     alt="艺术" class="section-image">
+                                <div class="image-actions">
+                                    <div class="img-btn delete-img">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- 板块5：科技创新 -->
+                <section id="section5" class="section">
+                    <div class="section-header">
+                        <div class="icon">
+                            <i class="fas fa-laptop-code"></i>
+                        </div>
+                        <h2 class="section-title" contenteditable="false">科技创新</h2>
+                    </div>
+                    
+                    <div class="section-content">
+                        <div class="section-text" contenteditable="false">
+                            <p>科技正在以前所未有的速度改变我们的世界。人工智能、量子计算、生物技术等领域的突破不断拓展人类的边界。这些创新不仅解决实际问题，更在重新定义人类的未来。</p>
+                        </div>
+                        
+                        <div class="images-container" id="section5-images">
+                            <div class="image-item">
+                                <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
+                                     alt="科技" class="section-image">
+                                <div class="image-actions">
+                                    <div class="img-btn delete-img">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            
+            <div class="footer">
+                <p>带多图上传功能的H5页面 | 左侧固定导航 | 管理员图片管理</p>
+                <p>使用HTML5、CSS3和JavaScript实现</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 管理员按钮 -->
+    <button class="admin-btn" id="adminBtn">
+        <i class="fas fa-user-cog"></i> 管理员编辑
+    </button>
+
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取所有导航按钮
+            const navButtons = document.querySelectorAll('.nav-btn');
+            // 获取所有内容板块
+            const sections = document.querySelectorAll('.section');
+            // 获取管理员按钮
+            const adminBtn = document.getElementById('adminBtn');
+            // 获取密码模态框
+            const passwordModal = document.getElementById('passwordModal');
+            // 获取密码输入框
+            const passwordInput = document.getElementById('passwordInput');
+            // 获取错误信息元素
+            const errorMsg = document.getElementById('errorMsg');
+            // 获取提交按钮
+            const submitBtn = document.getElementById('submitBtn');
+            // 获取取消按钮
+            const cancelBtn = document.getElementById('cancelBtn');
+            // 获取文件输入
+            const imageUpload = document.getElementById('imageUpload');
+            
+            // 当前编辑状态
+            let isEditMode = false;
+            // 正确密码
+            const correctPassword = "admin123";
+            // 当前正在编辑的板块ID
+            let currentEditingSection = null;
+            
+            // 默认激活第一个导航按钮
+            navButtons[0].classList.add('active');
+            
+            // 为每个导航按钮添加点击事件
+            navButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // 获取目标板块ID
+                    const targetId = this.getAttribute('data-target');
+                    // 获取目标板块元素
+                    const targetSection = document.getElementById(targetId);
+                    
+                    // 移除所有导航按钮的激活状态
+                    navButtons.forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    
+                    // 为当前点击的按钮添加激活状态
+                    this.classList.add('active');
+                    
+                    // 平滑滚动到目标板块
+                    targetSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                });
+            });
+            
+            // 监听滚动事件，实现滚动时更新导航按钮状态
+            window.addEventListener('scroll', function() {
+                // 获取当前滚动位置
+                const currentScroll = window.scrollY + 100;
+                
+                // 遍历所有板块
+                sections.forEach(section => {
+                    // 获取板块的位置信息
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.offsetHeight;
+                    
+                    // 判断当前滚动位置是否在板块区域内
+                    if (currentScroll >= sectionTop && currentScroll < sectionTop + sectionHeight) {
+                        // 获取当前板块ID
+                        const sectionId = section.getAttribute('id');
+                        
+                        // 移除所有导航按钮的激活状态
+                        navButtons.forEach(btn => {
+                            btn.classList.remove('active');
+                        });
+                        
+                        // 为对应导航按钮添加激活状态
+                        document.querySelector(`.nav-btn[data-target="${sectionId}"]`).classList.add('active');
+                    }
+                });
+            });
+            
+            // 管理员按钮点击事件
+            adminBtn.addEventListener('click', function() {
+                // 如果已经是编辑模式，则退出编辑模式
+                if (isEditMode) {
+                    exitEditMode();
+                } else {
+                    // 否则显示密码输入框
+                    passwordModal.classList.add('active');
+                    passwordInput.focus();
+                }
+            });
+            
+            // 提交按钮点击事件
+            submitBtn.addEventListener('click', function() {
+                validatePassword();
+            });
+            
+            // 取消按钮点击事件
+            cancelBtn.addEventListener('click', function() {
+                passwordModal.classList.remove('active');
+                passwordInput.value = '';
+                errorMsg.textContent = '';
+            });
+            
+            // 密码输入框回车事件
+            passwordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    validatePassword();
+                }
+            });
+            
+            // 文件选择变化事件
+            imageUpload.addEventListener('change', function(e) {
+                if (e.target.files.length > 0 && currentEditingSection) {
+                    // 处理所有选择的文件
+                    Array.from(e.target.files).forEach(file => {
+                        if (file.type.match('image.*')) {
+                            const reader = new FileReader();
+                            
+                            reader.onload = function(event) {
+                                addImageToSection(currentEditingSection, event.target.result);
+                            };
+                            
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                    
+                    // 重置文件输入
+                    imageUpload.value = '';
+                }
+            });
+            
+            // 验证密码函数
+            function validatePassword() {
+                const enteredPassword = passwordInput.value;
+                
+                if (enteredPassword === correctPassword) {
+                    // 密码正确，进入编辑模式
+                    passwordModal.classList.remove('active');
+                    passwordInput.value = '';
+                    errorMsg.textContent = '';
+                    
+                    enterEditMode();
+                } else {
+                    // 密码错误，显示错误信息
+                    errorMsg.textContent = '密码错误，请重新输入！';
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            }
+            
+            // 进入编辑模式函数
+            function enterEditMode() {
+                isEditMode = true;
+                adminBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> 退出编辑模式';
+                
+                // 为所有板块添加可编辑样式
+                sections.forEach(section => {
+                    section.classList.add('editable');
+                });
+                
+                // 启用标题编辑
+                document.querySelectorAll('.section-title').forEach(title => {
+                    title.contentEditable = true;
+                });
+                
+                // 启用内容编辑
+                document.querySelectorAll('.section-text').forEach(text => {
+                    text.contentEditable = true;
+                });
+                
+                // 为每个图片容器添加添加图片按钮
+                sections.forEach(section => {
+                    const sectionId = section.id;
+                    const imagesContainer = document.getElementById(`${sectionId}-images`);
+                    
+                    // 检查是否已经添加了添加按钮
+                    if (!imagesContainer.querySelector('.add-image-btn')) {
+                        const addBtn = document.createElement('div');
+                        addBtn.className = 'add-image-btn';
+                        addBtn.innerHTML = '<i class="fas fa-plus-circle"></i><span>添加图片</span>';
+                        addBtn.addEventListener('click', function() {
+                            currentEditingSection = sectionId;
+                            imageUpload.click();
+                        });
+                        imagesContainer.appendChild(addBtn);
+                    }
+                });
+                
+                // 为删除按钮添加事件
+                document.querySelectorAll('.delete-img').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const imageItem = this.closest('.image-item');
+                        if (imageItem && confirm('确定要删除这张图片吗？')) {
+                            imageItem.remove();
+                            showNotification('图片已删除！');
+                        }
+                    });
+                });
+            }
+            
+            // 退出编辑模式函数
+            function exitEditMode() {
+                isEditMode = false;
+                adminBtn.innerHTML = '<i class="fas fa-user-cog"></i> 管理员编辑';
+                
+                // 移除所有板块的可编辑样式
+                sections.forEach(section => {
+                    section.classList.remove('editable');
+                });
+                
+                // 禁用标题编辑
+                document.querySelectorAll('.section-title').forEach(title => {
+                    title.contentEditable = false;
+                });
+                
+                // 禁用内容编辑
+                document.querySelectorAll('.section-text').forEach(text => {
+                    text.contentEditable = false;
+                });
+                
+                // 移除所有添加按钮
+                document.querySelectorAll('.add-image-btn').forEach(btn => {
+                    btn.remove();
+                });
+            }
+            
+            // 添加图片到板块函数
+            function addImageToSection(sectionId, imageData) {
+                const imagesContainer = document.getElementById(`${sectionId}-images`);
+                
+                // 创建图片项
+                const imageItem = document.createElement('div');
+                imageItem.className = 'image-item';
+                
+                // 创建图片元素
+                const img = document.createElement('img');
+                img.src = imageData;
+                img.className = 'section-image';
+                img.alt = "上传的图片";
+                
+                // 创建图片操作按钮
+                const actions = document.createElement('div');
+                actions.className = 'image-actions';
+                
+                const deleteBtn = document.createElement('div');
+                deleteBtn.className = 'img-btn delete-img';
+                deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                deleteBtn.addEventListener('click', function() {
+                    if (confirm('确定要删除这张图片吗？')) {
+                        imageItem.remove();
+                        showNotification('图片已删除！');
+                    }
+                });
+                
+                actions.appendChild(deleteBtn);
+                imageItem.appendChild(img);
+                imageItem.appendChild(actions);
+                
+                // 在添加按钮前插入新图片
+                const addBtn = imagesContainer.querySelector('.add-image-btn');
+                if (addBtn) {
+                    imagesContainer.insertBefore(imageItem, addBtn);
+                } else {
+                    imagesContainer.appendChild(imageItem);
+                }
+                
+                showNotification('图片已添加！');
+            }
+            
+            // 显示通知函数
+            function showNotification(message) {
+                // 创建通知元素
+                const notification = document.createElement('div');
+                notification.textContent = message;
+                notification.style.cssText = `
+                    position: fixed;
+                    bottom: 100px;
+                    right: 30px;
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 50px;
+                    font-size: 1rem;
+                    z-index: 1000;
+                    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+                    animation: fadeInOut 3s forwards;
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // 3秒后移除通知
+                setTimeout(() => {
+                    notification.style.animation = 'fadeOut 0.5s forwards';
+                    setTimeout(() => notification.remove(), 500);
+                }, 2500);
+                
+                // 添加动画关键帧
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes fadeInOut {
+                        0% { opacity: 0; transform: translateY(20px); }
+                        10% { opacity: 1; transform: translateY(0); }
+                        90% { opacity: 1; transform: translateY(0); }
+                        100% { opacity: 0; transform: translateY(20px); }
+                    }
+                    @keyframes fadeOut {
+                        to { opacity: 0; transform: translateY(20px); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        });
+    </script>
+</body>
+</html>
